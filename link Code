@@ -1,0 +1,1280 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local LOGO_ID = "rbxassetid://135253158468501"
+local DEFAULT_URL = "https://128bit.online/128bit-hub-x/antonymxx/main.lua"
+
+local COLOR_BG = Color3.fromRGB(7, 7, 7)
+local COLOR_CARD = Color3.fromRGB(12, 12, 12)
+local COLOR_SIDE = Color3.fromRGB(20, 20, 20)
+local COLOR_INPUT = Color3.fromRGB(8, 8, 8)
+local COLOR_WHITE = Color3.fromRGB(255, 255, 255)
+local COLOR_MUTED = Color3.fromRGB(155, 155, 155)
+local COLOR_LINE = Color3.fromRGB(55, 55, 55)
+local COLOR_SUCCESS = Color3.fromRGB(46, 204, 113)
+local COLOR_ERROR = Color3.fromRGB(255, 100, 100)
+local COLOR_WARNING = Color3.fromRGB(255, 180, 80)
+
+local MAX_SOURCE_DISPLAY = 180000
+local MAX_LOG_DISPLAY = 50000
+
+local OldGui = PlayerGui:FindFirstChild("FlexozyLoader")
+
+if OldGui then
+    OldGui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlexozyLoader"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
+ScreenGui.Parent = PlayerGui
+
+local Background = Instance.new("Frame")
+Background.Size = UDim2.fromScale(1, 1)
+Background.BackgroundColor3 = COLOR_BG
+Background.BackgroundTransparency = 0.15
+Background.BorderSizePixel = 0
+Background.Parent = ScreenGui
+
+local Card = Instance.new("Frame")
+Card.AnchorPoint = Vector2.new(0.5, 0.5)
+Card.Position = UDim2.fromScale(0.5, 0.5)
+Card.Size = UDim2.fromOffset(760, 500)
+Card.BackgroundColor3 = COLOR_CARD
+Card.BorderSizePixel = 0
+Card.Parent = Background
+
+local CardCorner = Instance.new("UICorner")
+CardCorner.CornerRadius = UDim.new(0, 16)
+CardCorner.Parent = Card
+
+local CardStroke = Instance.new("UIStroke")
+CardStroke.Color = COLOR_WHITE
+CardStroke.Thickness = 1.5
+CardStroke.Transparency = 0.75
+CardStroke.Parent = Card
+
+local Scale = Instance.new("UIScale")
+Scale.Parent = Card
+
+local function UpdateScale()
+    local Camera = workspace.CurrentCamera
+
+    if not Camera then
+        return
+    end
+
+    local Viewport = Camera.ViewportSize
+
+    local X = (Viewport.X - 30) / 760
+    local Y = (Viewport.Y - 30) / 500
+
+    Scale.Scale = math.clamp(
+        math.min(X, Y),
+        0.45,
+        1
+    )
+end
+
+UpdateScale()
+
+if workspace.CurrentCamera then
+    workspace.CurrentCamera:GetPropertyChangedSignal(
+        "ViewportSize"
+    ):Connect(UpdateScale)
+end
+
+workspace:GetPropertyChangedSignal(
+    "CurrentCamera"
+):Connect(function()
+
+    local Camera = workspace.CurrentCamera
+
+    if Camera then
+
+        Camera:GetPropertyChangedSignal(
+            "ViewportSize"
+        ):Connect(UpdateScale)
+
+        UpdateScale()
+    end
+end)
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 65)
+Header.BackgroundColor3 = COLOR_SIDE
+Header.BorderSizePixel = 0
+Header.Parent = Card
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 16)
+HeaderCorner.Parent = Header
+
+local HeaderFix = Instance.new("Frame")
+HeaderFix.Position = UDim2.new(0, 0, 1, -16)
+HeaderFix.Size = UDim2.new(1, 0, 0, 16)
+HeaderFix.BackgroundColor3 = COLOR_SIDE
+HeaderFix.BorderSizePixel = 0
+HeaderFix.Parent = Header
+
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.fromOffset(42, 42)
+Logo.Position = UDim2.fromOffset(14, 11)
+Logo.BackgroundTransparency = 1
+Logo.Image = LOGO_ID
+Logo.ScaleType = Enum.ScaleType.Fit
+Logo.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Position = UDim2.fromOffset(68, 10)
+Title.Size = UDim2.fromOffset(400, 24)
+Title.BackgroundTransparency = 1
+Title.Text = "FLEXOZY HUB X"
+Title.TextColor3 = COLOR_WHITE
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local Status = Instance.new("TextLabel")
+Status.Position = UDim2.fromOffset(68, 34)
+Status.Size = UDim2.fromOffset(500, 18)
+Status.BackgroundTransparency = 1
+Status.Text = "พร้อมใช้งาน"
+Status.TextColor3 = COLOR_MUTED
+Status.TextSize = 12
+Status.Font = Enum.Font.Gotham
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.Parent = Header
+
+local URLBox = Instance.new("TextBox")
+URLBox.Position = UDim2.fromOffset(18, 82)
+URLBox.Size = UDim2.new(1, -150, 0, 42)
+URLBox.BackgroundColor3 = COLOR_INPUT
+URLBox.BorderSizePixel = 0
+URLBox.PlaceholderText = "ใส่ลิงก์สคริปต์..."
+URLBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+URLBox.Text = DEFAULT_URL
+URLBox.TextColor3 = COLOR_WHITE
+URLBox.TextSize = 13
+URLBox.Font = Enum.Font.Code
+URLBox.ClearTextOnFocus = false
+URLBox.TextXAlignment = Enum.TextXAlignment.Left
+URLBox.Parent = Card
+
+local URLCorner = Instance.new("UICorner")
+URLCorner.CornerRadius = UDim.new(0, 9)
+URLCorner.Parent = URLBox
+
+local URLStroke = Instance.new("UIStroke")
+URLStroke.Color = COLOR_LINE
+URLStroke.Thickness = 1
+URLStroke.Parent = URLBox
+
+local LoadButton = Instance.new("TextButton")
+LoadButton.Position = UDim2.new(1, -120, 0, 82)
+LoadButton.Size = UDim2.fromOffset(102, 42)
+LoadButton.BackgroundColor3 = COLOR_WHITE
+LoadButton.BorderSizePixel = 0
+LoadButton.Text = "LOAD"
+LoadButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+LoadButton.TextSize = 13
+LoadButton.Font = Enum.Font.GothamBold
+LoadButton.Parent = Card
+
+local LoadCorner = Instance.new("UICorner")
+LoadCorner.CornerRadius = UDim.new(0, 9)
+LoadCorner.Parent = LoadButton
+
+local CodeTitle = Instance.new("TextLabel")
+CodeTitle.Position = UDim2.fromOffset(18, 137)
+CodeTitle.Size = UDim2.fromOffset(180, 22)
+CodeTitle.BackgroundTransparency = 1
+CodeTitle.Text = "SOURCE"
+CodeTitle.TextColor3 = COLOR_WHITE
+CodeTitle.TextSize = 12
+CodeTitle.Font = Enum.Font.GothamBold
+CodeTitle.TextXAlignment = Enum.TextXAlignment.Left
+CodeTitle.Parent = Card
+
+local PageLabel = Instance.new("TextLabel")
+PageLabel.Position = UDim2.new(1, -370, 0, 137)
+PageLabel.Size = UDim2.fromOffset(100, 22)
+PageLabel.BackgroundTransparency = 1
+PageLabel.Text = "PAGE 0 / 0"
+PageLabel.TextColor3 = COLOR_MUTED
+PageLabel.TextSize = 10
+PageLabel.Font = Enum.Font.Gotham
+PageLabel.TextXAlignment = Enum.TextXAlignment.Right
+PageLabel.Parent = Card
+
+local PrevButton = Instance.new("TextButton")
+PrevButton.Position = UDim2.new(1, -260, 0, 132)
+PrevButton.Size = UDim2.fromOffset(38, 30)
+PrevButton.BackgroundColor3 = COLOR_SIDE
+PrevButton.BorderSizePixel = 0
+PrevButton.Text = "<"
+PrevButton.TextColor3 = COLOR_WHITE
+PrevButton.TextSize = 12
+PrevButton.Font = Enum.Font.GothamBold
+PrevButton.Parent = Card
+
+local PrevCorner = Instance.new("UICorner")
+PrevCorner.CornerRadius = UDim.new(0, 7)
+PrevCorner.Parent = PrevButton
+
+local NextButton = Instance.new("TextButton")
+NextButton.Position = UDim2.new(1, -218, 0, 132)
+NextButton.Size = UDim2.fromOffset(38, 30)
+NextButton.BackgroundColor3 = COLOR_SIDE
+NextButton.BorderSizePixel = 0
+NextButton.Text = ">"
+NextButton.TextColor3 = COLOR_WHITE
+NextButton.TextSize = 12
+NextButton.Font = Enum.Font.GothamBold
+NextButton.Parent = Card
+
+local NextCorner = Instance.new("UICorner")
+NextCorner.CornerRadius = UDim.new(0, 7)
+NextCorner.Parent = NextButton
+
+local CopyButton = Instance.new("TextButton")
+CopyButton.Position = UDim2.new(1, -120, 0, 132)
+CopyButton.Size = UDim2.fromOffset(92, 30)
+CopyButton.BackgroundColor3 = COLOR_SIDE
+CopyButton.BorderSizePixel = 0
+CopyButton.Text = "COPY FULL"
+CopyButton.TextColor3 = COLOR_WHITE
+CopyButton.TextSize = 10
+CopyButton.Font = Enum.Font.GothamBold
+CopyButton.Parent = Card
+
+local CopyCorner = Instance.new("UICorner")
+CopyCorner.CornerRadius = UDim.new(0, 7)
+CopyCorner.Parent = CopyButton
+
+local CopyStroke = Instance.new("UIStroke")
+CopyStroke.Color = COLOR_LINE
+CopyStroke.Thickness = 1
+CopyStroke.Parent = CopyButton
+
+local CodeScroll = Instance.new("ScrollingFrame")
+CodeScroll.Position = UDim2.fromOffset(18, 170)
+CodeScroll.Size = UDim2.new(1, -36, 0, 145)
+CodeScroll.BackgroundColor3 = Color3.fromRGB(6, 6, 6)
+CodeScroll.BorderSizePixel = 0
+CodeScroll.ScrollBarThickness = 5
+CodeScroll.ScrollBarImageTransparency = 0.25
+CodeScroll.ScrollingDirection = Enum.ScrollingDirection.XY
+CodeScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+CodeScroll.AutomaticCanvasSize = Enum.AutomaticSize.XY
+CodeScroll.Parent = Card
+
+local CodeCorner = Instance.new("UICorner")
+CodeCorner.CornerRadius = UDim.new(0, 10)
+CodeCorner.Parent = CodeScroll
+
+local CodeStroke = Instance.new("UIStroke")
+CodeStroke.Color = COLOR_LINE
+CodeStroke.Thickness = 1
+CodeStroke.Parent = CodeScroll
+
+local CodeBox = Instance.new("TextLabel")
+CodeBox.Position = UDim2.fromOffset(10, 8)
+CodeBox.Size = UDim2.fromOffset(1, 1)
+CodeBox.AutomaticSize = Enum.AutomaticSize.XY
+CodeBox.BackgroundTransparency = 1
+CodeBox.Text = "-- ยังไม่มี source"
+CodeBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+CodeBox.TextSize = 12
+CodeBox.Font = Enum.Font.Code
+CodeBox.TextXAlignment = Enum.TextXAlignment.Left
+CodeBox.TextYAlignment = Enum.TextYAlignment.Top
+CodeBox.TextWrapped = false
+CodeBox.Parent = CodeScroll
+
+local LogTitle = Instance.new("TextLabel")
+LogTitle.Position = UDim2.fromOffset(18, 325)
+LogTitle.Size = UDim2.fromOffset(300, 22)
+LogTitle.BackgroundTransparency = 1
+LogTitle.Text = "RUNTIME LOG"
+LogTitle.TextColor3 = COLOR_WHITE
+LogTitle.TextSize = 12
+LogTitle.Font = Enum.Font.GothamBold
+LogTitle.TextXAlignment = Enum.TextXAlignment.Left
+LogTitle.Parent = Card
+
+local CopyLogButton = Instance.new("TextButton")
+CopyLogButton.Position = UDim2.new(1, -120, 0, 320)
+CopyLogButton.Size = UDim2.fromOffset(102, 30)
+CopyLogButton.BackgroundColor3 = COLOR_SIDE
+CopyLogButton.BorderSizePixel = 0
+CopyLogButton.Text = "COPY LOG"
+CopyLogButton.TextColor3 = COLOR_WHITE
+CopyLogButton.TextSize = 11
+CopyLogButton.Font = Enum.Font.GothamBold
+CopyLogButton.Parent = Card
+
+local CopyLogCorner = Instance.new("UICorner")
+CopyLogCorner.CornerRadius = UDim.new(0, 7)
+CopyLogCorner.Parent = CopyLogButton
+
+local CopyLogStroke = Instance.new("UIStroke")
+CopyLogStroke.Color = COLOR_LINE
+CopyLogStroke.Thickness = 1
+CopyLogStroke.Parent = CopyLogButton
+
+local LogScroll = Instance.new("ScrollingFrame")
+LogScroll.Position = UDim2.fromOffset(18, 353)
+LogScroll.Size = UDim2.new(1, -36, 0, 125)
+LogScroll.BackgroundColor3 = Color3.fromRGB(6, 6, 6)
+LogScroll.BorderSizePixel = 0
+LogScroll.ScrollBarThickness = 5
+LogScroll.ScrollBarImageTransparency = 0.25
+LogScroll.ScrollingDirection = Enum.ScrollingDirection.XY
+LogScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+LogScroll.AutomaticCanvasSize = Enum.AutomaticSize.XY
+LogScroll.Parent = Card
+
+local LogCorner = Instance.new("UICorner")
+LogCorner.CornerRadius = UDim.new(0, 10)
+LogCorner.Parent = LogScroll
+
+local LogStroke = Instance.new("UIStroke")
+LogStroke.Color = COLOR_LINE
+LogStroke.Thickness = 1
+LogStroke.Parent = LogScroll
+
+local LogBox = Instance.new("TextLabel")
+LogBox.Position = UDim2.fromOffset(10, 8)
+LogBox.Size = UDim2.fromOffset(1, 1)
+LogBox.AutomaticSize = Enum.AutomaticSize.XY
+LogBox.BackgroundTransparency = 1
+LogBox.Text = "รอการทำงาน..."
+LogBox.TextColor3 = Color3.fromRGB(190, 190, 190)
+LogBox.TextSize = 11
+LogBox.Font = Enum.Font.Code
+LogBox.TextXAlignment = Enum.TextXAlignment.Left
+LogBox.TextYAlignment = Enum.TextYAlignment.Top
+LogBox.TextWrapped = false
+LogBox.Parent = LogScroll
+
+local OldLoadstring = loadstring
+
+local RootSource = ""
+local CapturedSource = ""
+local CapturedChunks = {}
+
+local LoadLogs = {}
+
+local CurrentSourcePage = 1
+local SourcePageCount = 0
+
+local IsLoading = false
+
+local function SetStatus(Text, Color)
+    if Status and Status.Parent then
+        Status.Text = tostring(Text)
+        Status.TextColor3 = Color or COLOR_MUTED
+    end
+end
+
+local function SafeSetText(Object, Text)
+    Text = tostring(Text or "")
+
+    if #Text >= 199000 then
+        Text = Text:sub(1, 198000)
+    end
+
+    pcall(function()
+        Object.Text = Text
+    end)
+end
+
+local function RefreshLog()
+    local Text = table.concat(
+        LoadLogs,
+        "\n"
+    )
+
+    if #Text > MAX_LOG_DISPLAY then
+        Text = Text:sub(
+            #Text - MAX_LOG_DISPLAY + 1
+        )
+    end
+
+    SafeSetText(
+        LogBox,
+        Text
+    )
+
+    task.defer(function()
+
+        if LogScroll
+            and LogScroll.Parent then
+
+            pcall(function()
+
+                LogScroll.CanvasPosition =
+                    Vector2.new(
+                        0,
+                        math.max(
+                            0,
+                            LogScroll.AbsoluteCanvasSize.Y
+                            - LogScroll.AbsoluteSize.Y
+                        )
+                    )
+
+            end)
+        end
+
+    end)
+end
+
+local function AddLog(Message, IsError)
+    Message = tostring(Message or "")
+
+    table.insert(
+        LoadLogs,
+        os.date("%H:%M:%S")
+        .. "  "
+        .. Message
+    )
+
+    RefreshLog()
+
+    if IsError then
+        SetStatus(
+            Message,
+            COLOR_ERROR
+        )
+    end
+end
+
+local function RefreshSourcePage()
+    if RootSource == "" then
+
+        SafeSetText(
+            CodeBox,
+            "-- ยังไม่มี source"
+        )
+
+        PageLabel.Text = "PAGE 0 / 0"
+
+        return
+    end
+
+    SourcePageCount = math.max(
+        1,
+        math.ceil(
+            #RootSource /
+            MAX_SOURCE_DISPLAY
+        )
+    )
+
+    CurrentSourcePage = math.clamp(
+        CurrentSourcePage,
+        1,
+        SourcePageCount
+    )
+
+    local StartIndex =
+        ((CurrentSourcePage - 1)
+        * MAX_SOURCE_DISPLAY) + 1
+
+    local EndIndex =
+        math.min(
+            StartIndex
+            + MAX_SOURCE_DISPLAY
+            - 1,
+            #RootSource
+        )
+
+    local PageSource =
+        RootSource:sub(
+            StartIndex,
+            EndIndex
+        )
+
+    SafeSetText(
+        CodeBox,
+        PageSource
+    )
+
+    PageLabel.Text =
+        "PAGE "
+        .. tostring(CurrentSourcePage)
+        .. " / "
+        .. tostring(SourcePageCount)
+
+    task.defer(function()
+
+        if CodeScroll
+            and CodeScroll.Parent then
+
+            CodeScroll.CanvasPosition =
+                Vector2.new(0, 0)
+
+        end
+
+    end)
+end
+
+local function SetRootSource(Source)
+    Source = tostring(Source or "")
+
+    if Source == "" then
+        return
+    end
+
+    RootSource = Source
+    CapturedSource = Source
+
+    CurrentSourcePage = 1
+
+    RefreshSourcePage()
+end
+
+local function CaptureNestedSource(Source)
+    Source = tostring(Source or "")
+
+    if Source == "" then
+        return
+    end
+
+    table.insert(
+        CapturedChunks,
+        Source
+    )
+
+    AddLog(
+        "Captured nested source: "
+        .. tostring(#Source)
+        .. " bytes"
+    )
+end
+
+local function ClearSession()
+    RootSource = ""
+    CapturedSource = ""
+    CapturedChunks = {}
+
+    CurrentSourcePage = 1
+    SourcePageCount = 0
+
+    LoadLogs = {}
+
+    PageLabel.Text = "PAGE 0 / 0"
+
+    SafeSetText(
+        CodeBox,
+        "-- ยังไม่มี source"
+    )
+
+    SafeSetText(
+        LogBox,
+        "รอการทำงาน..."
+    )
+end
+
+local function InstallLoadstringHook()
+
+    if not OldLoadstring then
+
+        AddLog(
+            "ไม่พบ loadstring",
+            true
+        )
+
+        return
+    end
+
+    local HookSuccess,
+        HookError =
+        pcall(function()
+
+            loadstring = function(Source)
+
+                Source = tostring(Source or "")
+
+                AddLog(
+                    "loadstring() ถูกเรียก"
+                )
+
+                AddLog(
+                    "Source Size: "
+                    .. tostring(#Source)
+                    .. " bytes"
+                )
+
+                CaptureNestedSource(Source)
+
+                local CompileSuccess,
+                    CompileResult =
+                    pcall(function()
+
+                        return OldLoadstring(
+                            Source
+                        )
+
+                    end)
+
+                if not CompileSuccess then
+
+                    AddLog(
+                        "Compile Error: "
+                        .. tostring(
+                            CompileResult
+                        ),
+                        true
+                    )
+
+                    return nil
+                end
+
+                AddLog(
+                    "Compile สำเร็จ"
+                )
+
+                if type(
+                    CompileResult
+                ) ~= "function" then
+
+                    AddLog(
+                        "Compile สำเร็จ แต่ไม่ใช่ function"
+                    )
+
+                    return CompileResult
+                end
+
+                local OriginalFunction =
+                    CompileResult
+
+                return function(...)
+
+                    local Arguments = {...}
+                    local Unpack =
+                        unpack or table.unpack
+
+                    AddLog(
+                        "Execute เริ่มทำงาน"
+                    )
+
+                    local ExecuteSuccess,
+                        ExecuteResult =
+                        pcall(function()
+
+                            return OriginalFunction(
+                                Unpack(Arguments)
+                            )
+
+                        end)
+
+                    if ExecuteSuccess then
+
+                        AddLog(
+                            "Execute สำเร็จ"
+                        )
+
+                        return ExecuteResult
+                    end
+
+                    AddLog(
+                        "Runtime Error: "
+                        .. tostring(
+                            ExecuteResult
+                        ),
+                        true
+                    )
+
+                    error(
+                        ExecuteResult,
+                        0
+                    )
+                end
+            end
+
+        end)
+
+    if HookSuccess then
+
+        AddLog(
+            "Loadstring Hook พร้อมใช้งาน"
+        )
+
+    else
+
+        AddLog(
+            "Hook loadstring ไม่สำเร็จ: "
+            .. tostring(HookError),
+            true
+        )
+
+    end
+end
+
+local function ExecuteRootSource(Source)
+
+    Source = tostring(Source or "")
+
+    if Source == "" then
+
+        AddLog(
+            "ไม่สามารถ Execute เพราะ Source ว่าง",
+            true
+        )
+
+        return false
+    end
+
+    if not OldLoadstring then
+
+        AddLog(
+            "Executor ไม่มี loadstring",
+            true
+        )
+
+        return false
+    end
+
+    AddLog(
+        "กำลัง Compile Source..."
+    )
+
+    local CompileSuccess,
+        CompileResult =
+        pcall(function()
+
+            return loadstring(Source)
+
+        end)
+
+    if not CompileSuccess then
+
+        AddLog(
+            "Compile Error: "
+            .. tostring(CompileResult),
+            true
+        )
+
+        return false
+    end
+
+    if type(
+        CompileResult
+    ) ~= "function" then
+
+        AddLog(
+            "Compile สำเร็จ แต่ผลลัพธ์ไม่ใช่ function",
+            true
+        )
+
+        return false
+    end
+
+    AddLog(
+        "Compile สำเร็จ"
+    )
+
+    AddLog(
+        "กำลัง Execute Source..."
+    )
+
+    local ExecuteSuccess,
+        ExecuteResult =
+        pcall(function()
+
+            return CompileResult()
+
+        end)
+
+    if not ExecuteSuccess then
+
+        AddLog(
+            "Runtime Error: "
+            .. tostring(ExecuteResult),
+            true
+        )
+
+        return false
+    end
+
+    AddLog(
+        "Execute สำเร็จ"
+    )
+
+    return true
+end
+
+InstallLoadstringHook()
+
+LoadButton.MouseButton1Click:Connect(function()
+
+    if IsLoading then
+        return
+    end
+
+    IsLoading = true
+
+    local URL =
+        tostring(
+            URLBox.Text or ""
+        )
+
+    URL = URL:gsub(
+        "^%s+",
+        ""
+    )
+
+    URL = URL:gsub(
+        "%s+$",
+        ""
+    )
+
+    if URL == "" then
+
+        SetStatus(
+            "กรุณาใส่ URL ก่อน",
+            COLOR_ERROR
+        )
+
+        LoadButton.Text = "LOAD"
+        IsLoading = false
+
+        return
+    end
+
+    ClearSession()
+
+    SetStatus(
+        "กำลังโหลด...",
+        COLOR_WHITE
+    )
+
+    LoadButton.Text = "LOADING"
+
+    AddLog(
+        "เริ่มโหลด URL"
+    )
+
+    AddLog(URL)
+
+    local HttpSuccess,
+        Result =
+        pcall(function()
+
+            return game:HttpGet(
+                URL,
+                true
+            )
+
+        end)
+
+    if not HttpSuccess then
+
+        SafeSetText(
+            CodeBox,
+            "-- HttpGet Error:\n\n"
+            .. tostring(Result)
+        )
+
+        AddLog(
+            "HttpGet Error: "
+            .. tostring(Result),
+            true
+        )
+
+        SetStatus(
+            "โหลดไม่สำเร็จ",
+            COLOR_ERROR
+        )
+
+        LoadButton.Text = "LOAD"
+        IsLoading = false
+
+        return
+    end
+
+    Result = tostring(
+        Result or ""
+    )
+
+    if Result == "" then
+
+        SafeSetText(
+            CodeBox,
+            "-- Source ว่าง"
+        )
+
+        AddLog(
+            "HttpGet สำเร็จ แต่ Source ว่าง",
+            true
+        )
+
+        SetStatus(
+            "Source ว่าง",
+            COLOR_ERROR
+        )
+
+        LoadButton.Text = "LOAD"
+        IsLoading = false
+
+        return
+    end
+
+    AddLog(
+        "HttpGet สำเร็จ: "
+        .. tostring(#Result)
+        .. " bytes"
+    )
+
+    SetRootSource(Result)
+
+    SetStatus(
+        "โหลด Source สำเร็จ",
+        COLOR_SUCCESS
+    )
+
+    LoadButton.Text = "RUNNING"
+
+    local ExecuteSuccess =
+        ExecuteRootSource(Result)
+
+    if ExecuteSuccess then
+
+        SetStatus(
+            "Execute สำเร็จ",
+            COLOR_SUCCESS
+        )
+
+        LoadButton.Text = "DONE"
+
+    else
+
+        SetStatus(
+            "Execute มี Error",
+            COLOR_ERROR
+        )
+
+        LoadButton.Text = "ERROR"
+    end
+
+    IsLoading = false
+end)
+
+PrevButton.MouseButton1Click:Connect(function()
+
+    if SourcePageCount <= 1 then
+        return
+    end
+
+    if CurrentSourcePage > 1 then
+
+        CurrentSourcePage =
+            CurrentSourcePage - 1
+
+        RefreshSourcePage()
+    end
+end)
+
+NextButton.MouseButton1Click:Connect(function()
+
+    if SourcePageCount <= 1 then
+        return
+    end
+
+    if CurrentSourcePage
+        < SourcePageCount then
+
+        CurrentSourcePage =
+            CurrentSourcePage + 1
+
+        RefreshSourcePage()
+    end
+end)
+
+CopyButton.MouseButton1Click:Connect(function()
+
+    if RootSource == "" then
+
+        SetStatus(
+            "ยังไม่มี Source",
+            COLOR_WARNING
+        )
+
+        return
+    end
+
+    if not setclipboard then
+
+        SetStatus(
+            "Executor ไม่รองรับ Clipboard",
+            COLOR_WARNING
+        )
+
+        return
+    end
+
+    local Success,
+        ErrorMessage =
+        pcall(function()
+
+            setclipboard(
+                RootSource
+            )
+
+        end)
+
+    if Success then
+
+        CopyButton.Text = "COPIED"
+
+        SetStatus(
+            "คัดลอก Source เต็มแล้ว "
+            .. tostring(#RootSource)
+            .. " bytes",
+            COLOR_SUCCESS
+        )
+
+        task.delay(
+            1.2,
+            function()
+
+                if CopyButton
+                    and CopyButton.Parent then
+
+                    CopyButton.Text =
+                        "COPY FULL"
+                end
+
+            end
+        )
+
+    else
+
+        SetStatus(
+            "Copy ไม่สำเร็จ: "
+            .. tostring(ErrorMessage),
+            COLOR_WARNING
+        )
+    end
+end)
+
+CopyLogButton.MouseButton1Click:Connect(function()
+
+    local Text =
+        table.concat(
+            LoadLogs,
+            "\n"
+        )
+
+    if Text == "" then
+
+        SetStatus(
+            "ยังไม่มี Log",
+            COLOR_WARNING
+        )
+
+        return
+    end
+
+    if not setclipboard then
+
+        SetStatus(
+            "Executor ไม่รองรับ Clipboard",
+            COLOR_WARNING
+        )
+
+        return
+    end
+
+    local Success,
+        ErrorMessage =
+        pcall(function()
+
+            setclipboard(Text)
+
+        end)
+
+    if Success then
+
+        CopyLogButton.Text = "COPIED"
+
+        task.delay(
+            1.2,
+            function()
+
+                if CopyLogButton
+                    and CopyLogButton.Parent then
+
+                    CopyLogButton.Text =
+                        "COPY LOG"
+                end
+
+            end
+        )
+
+    else
+
+        SetStatus(
+            "Copy Log ไม่สำเร็จ: "
+            .. tostring(ErrorMessage),
+            COLOR_WARNING
+        )
+    end
+end)
+
+LoadButton.MouseEnter:Connect(function()
+
+    TweenService:Create(
+        LoadButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                Color3.fromRGB(
+                    220,
+                    220,
+                    220
+                )
+        }
+    ):Play()
+
+end)
+
+LoadButton.MouseLeave:Connect(function()
+
+    TweenService:Create(
+        LoadButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                COLOR_WHITE
+        }
+    ):Play()
+
+end)
+
+CopyButton.MouseEnter:Connect(function()
+
+    TweenService:Create(
+        CopyButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                Color3.fromRGB(
+                    35,
+                    35,
+                    35
+                )
+        }
+    ):Play()
+
+end)
+
+CopyButton.MouseLeave:Connect(function()
+
+    TweenService:Create(
+        CopyButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                COLOR_SIDE
+        }
+    ):Play()
+
+end)
+
+CopyLogButton.MouseEnter:Connect(function()
+
+    TweenService:Create(
+        CopyLogButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                Color3.fromRGB(
+                    35,
+                    35,
+                    35
+                )
+        }
+    ):Play()
+
+end)
+
+CopyLogButton.MouseLeave:Connect(function()
+
+    TweenService:Create(
+        CopyLogButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                COLOR_SIDE
+        }
+    ):Play()
+
+end)
+
+PrevButton.MouseEnter:Connect(function()
+
+    TweenService:Create(
+        PrevButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                Color3.fromRGB(
+                    35,
+                    35,
+                    35
+                )
+        }
+    ):Play()
+
+end)
+
+PrevButton.MouseLeave:Connect(function()
+
+    TweenService:Create(
+        PrevButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                COLOR_SIDE
+        }
+    ):Play()
+
+end)
+
+NextButton.MouseEnter:Connect(function()
+
+    TweenService:Create(
+        NextButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                Color3.fromRGB(
+                    35,
+                    35,
+                    35
+                )
+        }
+    ):Play()
+
+end)
+
+NextButton.MouseLeave:Connect(function()
+
+    TweenService:Create(
+        NextButton,
+        TweenInfo.new(0.15),
+        {
+            BackgroundColor3 =
+                COLOR_SIDE
+        }
+    ):Play()
+
+end)
