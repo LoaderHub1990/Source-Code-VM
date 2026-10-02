@@ -1,0 +1,690 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local LOGO_ID = "rbxassetid://135253158468501"
+local DEFAULT_URL = "https://128bit.online/128bit-hub-x/antonymxx/main.lua"
+
+local COLOR_BG = Color3.fromRGB(7, 7, 7)
+local COLOR_CARD = Color3.fromRGB(12, 12, 12)
+local COLOR_SIDE = Color3.fromRGB(20, 20, 20)
+local COLOR_INPUT = Color3.fromRGB(8, 8, 8)
+local COLOR_WHITE = Color3.fromRGB(255, 255, 255)
+local COLOR_MUTED = Color3.fromRGB(155, 155, 155)
+local COLOR_LINE = Color3.fromRGB(55, 55, 55)
+local COLOR_SUCCESS = Color3.fromRGB(46, 204, 113)
+local COLOR_ERROR = Color3.fromRGB(255, 100, 100)
+local COLOR_WARNING = Color3.fromRGB(255, 180, 80)
+local COLOR_HOVER = Color3.fromRGB(35, 35, 35)
+
+local MAX_SOURCE_DISPLAY = 180000
+local MAX_LOG_DISPLAY = 50000
+
+local Env = (getgenv and getgenv()) or _G
+
+-- ===== helpers =====
+
+local function Corner(Parent, Radius)
+    local C = Instance.new("UICorner")
+    C.CornerRadius = UDim.new(0, Radius)
+    C.Parent = Parent
+    return C
+end
+
+local function Stroke(Parent, Color, Thickness, Transparency)
+    local S = Instance.new("UIStroke")
+    S.Color = Color
+    S.Thickness = Thickness or 1
+    S.Transparency = Transparency or 0
+    S.Parent = Parent
+    return S
+end
+
+local function Label(Parent, Pos, Size, Text, TextSize, Font, Color, Align)
+    local L = Instance.new("TextLabel")
+    L.Position = Pos
+    L.Size = Size
+    L.BackgroundTransparency = 1
+    L.Text = Text
+    L.TextColor3 = Color or COLOR_WHITE
+    L.TextSize = TextSize
+    L.Font = Font
+    L.TextXAlignment = Align or Enum.TextXAlignment.Left
+    L.Parent = Parent
+    return L
+end
+
+local function SmallButton(Pos, Size, Text, TextSize, Radius)
+    local B = Instance.new("TextButton")
+    B.Position = Pos
+    B.Size = Size
+    B.BackgroundColor3 = COLOR_SIDE
+    B.BorderSizePixel = 0
+    B.Text = Text
+    B.TextColor3 = COLOR_WHITE
+    B.TextSize = TextSize
+    B.Font = Enum.Font.GothamBold
+    Corner(B, Radius or 7)
+    return B
+end
+
+local function Hover(Button, Normal, Over)
+    Button.MouseEnter:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), {BackgroundColor3 = Over}):Play()
+    end)
+    Button.MouseLeave:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), {BackgroundColor3 = Normal}):Play()
+    end)
+end
+
+local function ScrollBox(Parent, Pos, Size, InitText, TextSize, TextColor)
+    local Scroll = Instance.new("ScrollingFrame")
+    Scroll.Position = Pos
+    Scroll.Size = Size
+    Scroll.BackgroundColor3 = Color3.fromRGB(6, 6, 6)
+    Scroll.BorderSizePixel = 0
+    Scroll.ScrollBarThickness = 5
+    Scroll.ScrollBarImageTransparency = 0.25
+    Scroll.ScrollingDirection = Enum.ScrollingDirection.XY
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Scroll.AutomaticCanvasSize = Enum.AutomaticSize.XY
+    Scroll.Parent = Parent
+    Corner(Scroll, 10)
+    Stroke(Scroll, COLOR_LINE, 1)
+
+    local Box = Instance.new("TextLabel")
+    Box.Position = UDim2.fromOffset(10, 8)
+    Box.Size = UDim2.fromOffset(1, 1)
+    Box.AutomaticSize = Enum.AutomaticSize.XY
+    Box.BackgroundTransparency = 1
+    Box.Text = InitText
+    Box.TextColor3 = TextColor
+    Box.TextSize = TextSize
+    Box.Font = Enum.Font.Code
+    Box.TextXAlignment = Enum.TextXAlignment.Left
+    Box.TextYAlignment = Enum.TextYAlignment.Top
+    Box.TextWrapped = false
+    Box.Parent = Scroll
+
+    return Scroll, Box
+end
+
+-- ===== GUI =====
+
+local OldGui = PlayerGui:FindFirstChild("FlexozyLoader")
+if OldGui then
+    OldGui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlexozyLoader"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
+ScreenGui.Parent = PlayerGui
+
+local Background = Instance.new("Frame")
+Background.Size = UDim2.fromScale(1, 1)
+Background.BackgroundColor3 = COLOR_BG
+Background.BackgroundTransparency = 0.15
+Background.BorderSizePixel = 0
+Background.Parent = ScreenGui
+
+local Card = Instance.new("Frame")
+Card.AnchorPoint = Vector2.new(0.5, 0.5)
+Card.Position = UDim2.fromScale(0.5, 0.5)
+Card.Size = UDim2.fromOffset(760, 500)
+Card.BackgroundColor3 = COLOR_CARD
+Card.BorderSizePixel = 0
+Card.Parent = Background
+Corner(Card, 16)
+Stroke(Card, COLOR_WHITE, 1.5, 0.75)
+
+local Scale = Instance.new("UIScale")
+Scale.Parent = Card
+
+local function UpdateScale()
+    local Camera = workspace.CurrentCamera
+    if not Camera then
+        return
+    end
+    local V = Camera.ViewportSize
+    Scale.Scale = math.clamp(math.min((V.X - 30) / 760, (V.Y - 30) / 500), 0.45, 1)
+end
+
+UpdateScale()
+
+local function BindCamera()
+    local Camera = workspace.CurrentCamera
+    if Camera then
+        Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
+        UpdateScale()
+    end
+end
+
+BindCamera()
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(BindCamera)
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 65)
+Header.BackgroundColor3 = COLOR_SIDE
+Header.BorderSizePixel = 0
+Header.Parent = Card
+Corner(Header, 16)
+
+local HeaderFix = Instance.new("Frame")
+HeaderFix.Position = UDim2.new(0, 0, 1, -16)
+HeaderFix.Size = UDim2.new(1, 0, 0, 16)
+HeaderFix.BackgroundColor3 = COLOR_SIDE
+HeaderFix.BorderSizePixel = 0
+HeaderFix.Parent = Header
+
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.fromOffset(42, 42)
+Logo.Position = UDim2.fromOffset(14, 11)
+Logo.BackgroundTransparency = 1
+Logo.Image = LOGO_ID
+Logo.ScaleType = Enum.ScaleType.Fit
+Logo.Parent = Header
+
+Label(Header, UDim2.fromOffset(68, 10), UDim2.fromOffset(400, 24), "FLEXOZY HUB X", 18, Enum.Font.GothamBold)
+local Status = Label(Header, UDim2.fromOffset(68, 34), UDim2.fromOffset(500, 18), "พร้อมใช้งาน", 12, Enum.Font.Gotham, COLOR_MUTED)
+
+local URLBox = Instance.new("TextBox")
+URLBox.Position = UDim2.fromOffset(18, 82)
+URLBox.Size = UDim2.new(1, -150, 0, 42)
+URLBox.BackgroundColor3 = COLOR_INPUT
+URLBox.BorderSizePixel = 0
+URLBox.PlaceholderText = "ใส่ลิงก์สคริปต์..."
+URLBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+URLBox.Text = DEFAULT_URL
+URLBox.TextColor3 = COLOR_WHITE
+URLBox.TextSize = 13
+URLBox.Font = Enum.Font.Code
+URLBox.ClearTextOnFocus = false
+URLBox.TextXAlignment = Enum.TextXAlignment.Left
+URLBox.Parent = Card
+Corner(URLBox, 9)
+Stroke(URLBox, COLOR_LINE, 1)
+
+local LoadButton = Instance.new("TextButton")
+LoadButton.Position = UDim2.new(1, -120, 0, 82)
+LoadButton.Size = UDim2.fromOffset(102, 42)
+LoadButton.BackgroundColor3 = COLOR_WHITE
+LoadButton.BorderSizePixel = 0
+LoadButton.Text = "LOAD"
+LoadButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+LoadButton.TextSize = 13
+LoadButton.Font = Enum.Font.GothamBold
+LoadButton.Parent = Card
+Corner(LoadButton, 9)
+
+-- Row: SOURCE | STAGE [<] [>] [COPY ALL] ...... PAGE [<] [>] [COPY]
+Label(Card, UDim2.fromOffset(18, 137), UDim2.fromOffset(60, 22), "SOURCE", 12, Enum.Font.GothamBold)
+
+local StageLabel = Label(Card, UDim2.fromOffset(82, 137), UDim2.fromOffset(105, 22), "STAGE 0 / 0", 10, Enum.Font.GothamBold, COLOR_SUCCESS)
+
+local StagePrev = SmallButton(UDim2.fromOffset(190, 132), UDim2.fromOffset(34, 30), "<", 12)
+StagePrev.Parent = Card
+local StageNext = SmallButton(UDim2.fromOffset(228, 132), UDim2.fromOffset(34, 30), ">", 12)
+StageNext.Parent = Card
+local CopyAllButton = SmallButton(UDim2.fromOffset(270, 132), UDim2.fromOffset(84, 30), "COPY ALL", 10)
+CopyAllButton.Parent = Card
+Stroke(CopyAllButton, COLOR_LINE, 1)
+
+local PageLabel = Label(Card, UDim2.new(1, -370, 0, 137), UDim2.fromOffset(100, 22), "PAGE 0 / 0", 10, Enum.Font.Gotham, COLOR_MUTED, Enum.TextXAlignment.Right)
+
+local PrevButton = SmallButton(UDim2.new(1, -260, 0, 132), UDim2.fromOffset(38, 30), "<", 12)
+PrevButton.Parent = Card
+local NextButton = SmallButton(UDim2.new(1, -218, 0, 132), UDim2.fromOffset(38, 30), ">", 12)
+NextButton.Parent = Card
+local CopyButton = SmallButton(UDim2.new(1, -120, 0, 132), UDim2.fromOffset(92, 30), "COPY STAGE", 10)
+CopyButton.Parent = Card
+Stroke(CopyButton, COLOR_LINE, 1)
+
+local CodeScroll, CodeBox = ScrollBox(
+    Card, UDim2.fromOffset(18, 170), UDim2.new(1, -36, 0, 145),
+    "-- ยังไม่มี source", 12, Color3.fromRGB(220, 220, 220)
+)
+
+Label(Card, UDim2.fromOffset(18, 325), UDim2.fromOffset(300, 22), "RUNTIME LOG", 12, Enum.Font.GothamBold)
+
+local CopyLogButton = SmallButton(UDim2.new(1, -120, 0, 320), UDim2.fromOffset(102, 30), "COPY LOG", 11)
+CopyLogButton.Parent = Card
+Stroke(CopyLogButton, COLOR_LINE, 1)
+
+local LogScroll, LogBox = ScrollBox(
+    Card, UDim2.fromOffset(18, 353), UDim2.new(1, -36, 0, 125),
+    "รอการทำงาน...", 11, Color3.fromRGB(190, 190, 190)
+)
+
+-- ===== state =====
+
+local Stages = {}          -- { {Name = string, Source = string}, ... }
+local SeenSources = {}     -- กันซอสซ้ำ
+local StageIndex = 1
+local PageIndex = 1
+local PageCount = 0
+local LoadLogs = {}
+local IsLoading = false
+local NestedCounter = 0
+
+local function SetStatus(Text, Color)
+    if Status and Status.Parent then
+        Status.Text = tostring(Text)
+        Status.TextColor3 = Color or COLOR_MUTED
+    end
+end
+
+local function SafeSetText(Object, Text)
+    Text = tostring(Text or "")
+    if #Text >= 199000 then
+        Text = Text:sub(1, 198000)
+    end
+    pcall(function()
+        Object.Text = Text
+    end)
+end
+
+local function RefreshLog()
+    local Text = table.concat(LoadLogs, "\n")
+    if #Text > MAX_LOG_DISPLAY then
+        Text = Text:sub(#Text - MAX_LOG_DISPLAY + 1)
+    end
+    SafeSetText(LogBox, Text)
+
+    task.defer(function()
+        if LogScroll and LogScroll.Parent then
+            pcall(function()
+                LogScroll.CanvasPosition = Vector2.new(
+                    0,
+                    math.max(0, LogScroll.AbsoluteCanvasSize.Y - LogScroll.AbsoluteSize.Y)
+                )
+            end)
+        end
+    end)
+end
+
+local function AddLog(Message, IsError)
+    Message = tostring(Message or "")
+    table.insert(LoadLogs, os.date("%H:%M:%S") .. "  " .. Message)
+    RefreshLog()
+    if IsError then
+        SetStatus(Message, COLOR_ERROR)
+    end
+end
+
+local function CurrentStage()
+    return Stages[StageIndex]
+end
+
+local function RefreshSourcePage()
+    local Stage = CurrentStage()
+
+    StageLabel.Text = "STAGE " .. tostring(#Stages > 0 and StageIndex or 0) .. " / " .. tostring(#Stages)
+
+    if not Stage or Stage.Source == "" then
+        SafeSetText(CodeBox, "-- ยังไม่มี source")
+        PageLabel.Text = "PAGE 0 / 0"
+        PageCount = 0
+        return
+    end
+
+    local Source = Stage.Source
+
+    PageCount = math.max(1, math.ceil(#Source / MAX_SOURCE_DISPLAY))
+    PageIndex = math.clamp(PageIndex, 1, PageCount)
+
+    local StartIndex = ((PageIndex - 1) * MAX_SOURCE_DISPLAY) + 1
+    local EndIndex = math.min(StartIndex + MAX_SOURCE_DISPLAY - 1, #Source)
+
+    SafeSetText(CodeBox, Source:sub(StartIndex, EndIndex))
+    PageLabel.Text = "PAGE " .. tostring(PageIndex) .. " / " .. tostring(PageCount)
+
+    task.defer(function()
+        if CodeScroll and CodeScroll.Parent then
+            CodeScroll.CanvasPosition = Vector2.new(0, 0)
+        end
+    end)
+end
+
+local function GoToStage(Index)
+    if #Stages == 0 then
+        return
+    end
+    StageIndex = math.clamp(Index, 1, #Stages)
+    PageIndex = 1
+    RefreshSourcePage()
+end
+
+-- เพิ่ม stage ใหม่ (ซ้ำจะไม่เพิ่ม) คืนค่า index
+local function AddStage(Name, Source)
+    Source = tostring(Source or "")
+
+    if Source == "" then
+        return nil
+    end
+
+    if SeenSources[Source] then
+        return SeenSources[Source]
+    end
+
+    table.insert(Stages, {Name = Name, Source = Source})
+    SeenSources[Source] = #Stages
+
+    AddLog("Captured stage " .. tostring(#Stages) .. ": " .. tostring(Name) .. " (" .. tostring(#Source) .. " bytes)")
+
+    -- stage แรกให้แสดงเลย, stage ถัดไปแค่อัปเดตตัวนับ (ไม่แย่งหน้าจอ)
+    if #Stages == 1 then
+        StageIndex = 1
+        PageIndex = 1
+    end
+    RefreshSourcePage()
+
+    return #Stages
+end
+
+local function ClearSession()
+    Stages = {}
+    SeenSources = {}
+    StageIndex = 1
+    PageIndex = 1
+    PageCount = 0
+    NestedCounter = 0
+    LoadLogs = {}
+
+    StageLabel.Text = "STAGE 0 / 0"
+    PageLabel.Text = "PAGE 0 / 0"
+    SafeSetText(CodeBox, "-- ยังไม่มี source")
+    SafeSetText(LogBox, "รอการทำงาน...")
+end
+
+-- ===== hooks =====
+
+-- เก็บ loadstring ตัวจริงไว้ใน getgenv กันฮุกซ้อนเวลารันสคริปต์นี้ซ้ำ
+local OldLoadstring = Env.__FlexozyOldLoadstring or loadstring
+Env.__FlexozyOldLoadstring = OldLoadstring
+
+local function HookedLoadstring(Source, ChunkName)
+    if type(Source) == "string" then
+        NestedCounter = NestedCounter + 1
+        AddLog("loadstring() ถูกเรียก (" .. tostring(#Source) .. " bytes)")
+        AddStage("loadstring #" .. tostring(NestedCounter), Source)
+    end
+
+    local Fn, Err = OldLoadstring(Source, ChunkName)
+
+    if not Fn then
+        AddLog("Compile Error: " .. tostring(Err), true)
+        return nil, Err
+    end
+
+    return function(...)
+        local Packed = table.pack(pcall(Fn, ...))
+
+        if Packed[1] then
+            return (unpack or table.unpack)(Packed, 2, Packed.n)
+        end
+
+        AddLog("Runtime Error: " .. tostring(Packed[2]), true)
+        error(Packed[2], 0)
+    end
+end
+
+local function InstallLoadstringHook()
+    if not OldLoadstring then
+        AddLog("ไม่พบ loadstring", true)
+        return
+    end
+
+    -- ตั้งทั้งใน global env และ env ของสคริปต์นี้ เพื่อให้สคริปต์ขั้นถัดไปโดนจับด้วย
+    local Ok, Err = pcall(function()
+        Env.loadstring = HookedLoadstring
+        loadstring = HookedLoadstring
+    end)
+
+    if Ok then
+        AddLog("Loadstring Hook พร้อมใช้งาน")
+    else
+        AddLog("Hook loadstring ไม่สำเร็จ: " .. tostring(Err), true)
+    end
+end
+
+-- ฮุก game:HttpGet เพื่อจับซอสที่ถูกโหลดมาจาก URL ในแต่ละขั้นตอน
+Env.__FlexozyOnHttp = function(Url, Result)
+    if type(Result) == "string" and #Result > 0 then
+        AddLog("HttpGet: " .. tostring(Url))
+        AddStage("HTTP " .. tostring(Url), Result)
+    end
+end
+
+local function InstallHttpHook()
+    if Env.__FlexozyHttpHooked then
+        return
+    end
+
+    if not hookfunction then
+        AddLog("Executor ไม่มี hookfunction — จะจับ HttpGet ไม่ได้ (ยังจับ loadstring ได้)")
+        return
+    end
+
+    for _, Name in ipairs({"HttpGet", "HttpGetAsync"}) do
+        pcall(function()
+            local Old
+            local Wrapper = function(Self, Url, ...)
+                local Result = Old(Self, Url, ...)
+                local Callback = Env.__FlexozyOnHttp
+                if Callback then
+                    pcall(Callback, Url, Result)
+                end
+                return Result
+            end
+            if newcclosure then
+                Wrapper = newcclosure(Wrapper)
+            end
+            Old = hookfunction(game[Name], Wrapper)
+        end)
+    end
+
+    Env.__FlexozyHttpHooked = true
+    AddLog("HttpGet Hook พร้อมใช้งาน")
+end
+
+local function ExecuteRootSource(Source)
+    if Source == "" then
+        AddLog("ไม่สามารถ Execute เพราะ Source ว่าง", true)
+        return false
+    end
+
+    if not OldLoadstring then
+        AddLog("Executor ไม่มี loadstring", true)
+        return false
+    end
+
+    AddLog("กำลัง Compile Source...")
+
+    -- ใช้ตัวจริงตรง ๆ เพื่อไม่ให้ root ถูกนับซ้ำเป็น nested
+    local Fn, CompileErr = OldLoadstring(Source)
+
+    if type(Fn) ~= "function" then
+        AddLog("Compile Error: " .. tostring(CompileErr), true)
+        return false
+    end
+
+    AddLog("Compile สำเร็จ")
+    AddLog("กำลัง Execute Source...")
+
+    local Ok, Err = pcall(Fn)
+
+    if not Ok then
+        AddLog("Runtime Error: " .. tostring(Err), true)
+        return false
+    end
+
+    AddLog("Execute สำเร็จ")
+    return true
+end
+
+-- ===== events =====
+
+LoadButton.MouseButton1Click:Connect(function()
+    if IsLoading then
+        return
+    end
+    IsLoading = true
+
+    local URL = tostring(URLBox.Text or "")
+    URL = URL:gsub("^%s+", "")
+    URL = URL:gsub("%s+$", "")
+
+    if URL == "" then
+        SetStatus("กรุณาใส่ URL ก่อน", COLOR_ERROR)
+        LoadButton.Text = "LOAD"
+        IsLoading = false
+        return
+    end
+
+    ClearSession()
+    SetStatus("กำลังโหลด...", COLOR_WHITE)
+    LoadButton.Text = "LOADING"
+
+    AddLog("เริ่มโหลด URL")
+    AddLog(URL)
+
+    InstallLoadstringHook()
+    InstallHttpHook()
+
+    local HttpSuccess, Result = pcall(function()
+        return game:HttpGet(URL, true)
+    end)
+
+    if not HttpSuccess then
+        SafeSetText(CodeBox, "-- HttpGet Error:\n\n" .. tostring(Result))
+        AddLog("HttpGet Error: " .. tostring(Result), true)
+        SetStatus("โหลดไม่สำเร็จ", COLOR_ERROR)
+        LoadButton.Text = "LOAD"
+        IsLoading = false
+        return
+    end
+
+    Result = tostring(Result or "")
+
+    if Result == "" then
+        SafeSetText(CodeBox, "-- Source ว่าง")
+        AddLog("HttpGet สำเร็จ แต่ Source ว่าง", true)
+        SetStatus("Source ว่าง", COLOR_ERROR)
+        LoadButton.Text = "LOAD"
+        IsLoading = false
+        return
+    end
+
+    AddLog("HttpGet สำเร็จ: " .. tostring(#Result) .. " bytes")
+
+    -- ถ้า HttpGet hook จับไว้แล้ว AddStage จะไม่เพิ่มซ้ำ
+    AddStage("ROOT", Result)
+
+    SetStatus("โหลด Source สำเร็จ", COLOR_SUCCESS)
+    LoadButton.Text = "RUNNING"
+
+    if ExecuteRootSource(Result) then
+        SetStatus("Execute สำเร็จ — " .. tostring(#Stages) .. " stage", COLOR_SUCCESS)
+        LoadButton.Text = "DONE"
+    else
+        SetStatus("Execute มี Error", COLOR_ERROR)
+        LoadButton.Text = "ERROR"
+    end
+
+    IsLoading = false
+end)
+
+StagePrev.MouseButton1Click:Connect(function()
+    GoToStage(StageIndex - 1)
+end)
+
+StageNext.MouseButton1Click:Connect(function()
+    GoToStage(StageIndex + 1)
+end)
+
+PrevButton.MouseButton1Click:Connect(function()
+    if PageCount > 1 and PageIndex > 1 then
+        PageIndex = PageIndex - 1
+        RefreshSourcePage()
+    end
+end)
+
+NextButton.MouseButton1Click:Connect(function()
+    if PageCount > 1 and PageIndex < PageCount then
+        PageIndex = PageIndex + 1
+        RefreshSourcePage()
+    end
+end)
+
+local function CopyText(Text, Button, IdleText, OkStatus)
+    if Text == "" then
+        SetStatus("ยังไม่มีข้อมูลให้คัดลอก", COLOR_WARNING)
+        return
+    end
+
+    if not setclipboard then
+        SetStatus("Executor ไม่รองรับ Clipboard", COLOR_WARNING)
+        return
+    end
+
+    local Ok, Err = pcall(setclipboard, Text)
+
+    if Ok then
+        Button.Text = "COPIED"
+        if OkStatus then
+            SetStatus(OkStatus, COLOR_SUCCESS)
+        end
+        task.delay(1.2, function()
+            if Button and Button.Parent then
+                Button.Text = IdleText
+            end
+        end)
+    else
+        SetStatus("Copy ไม่สำเร็จ: " .. tostring(Err), COLOR_WARNING)
+    end
+end
+
+CopyButton.MouseButton1Click:Connect(function()
+    local Stage = CurrentStage()
+    if not Stage then
+        SetStatus("ยังไม่มี Source", COLOR_WARNING)
+        return
+    end
+    CopyText(
+        Stage.Source, CopyButton, "COPY STAGE",
+        "คัดลอก Stage " .. tostring(StageIndex) .. " แล้ว " .. tostring(#Stage.Source) .. " bytes"
+    )
+end)
+
+CopyAllButton.MouseButton1Click:Connect(function()
+    if #Stages == 0 then
+        SetStatus("ยังไม่มี Source", COLOR_WARNING)
+        return
+    end
+
+    local Parts = {}
+    for I, Stage in ipairs(Stages) do
+        table.insert(Parts, "-- ===== STAGE " .. tostring(I) .. ": " .. tostring(Stage.Name) .. " =====\n" .. Stage.Source)
+    end
+
+    CopyText(
+        table.concat(Parts, "\n\n"), CopyAllButton, "COPY ALL",
+        "คัดลอกทั้งหมด " .. tostring(#Stages) .. " stage แล้ว"
+    )
+end)
+
+CopyLogButton.MouseButton1Click:Connect(function()
+    CopyText(table.concat(LoadLogs, "\n"), CopyLogButton, "COPY LOG", nil)
+end)
+
+-- ===== hover =====
+
+Hover(LoadButton, COLOR_WHITE, Color3.fromRGB(220, 220, 220))
+for _, Button in ipairs({CopyButton, CopyAllButton, CopyLogButton, PrevButton, NextButton, StagePrev, StageNext}) do
+    Hover(Button, COLOR_SIDE, COLOR_HOVER)
+end
