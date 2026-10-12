@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
@@ -23,8 +24,6 @@ local MAX_SOURCE_DISPLAY = 180000
 local MAX_LOG_DISPLAY = 50000
 
 local Env = (getgenv and getgenv()) or _G
-
--- ===== helpers =====
 
 local function Corner(Parent, Radius)
     local C = Instance.new("UICorner")
@@ -110,8 +109,6 @@ local function ScrollBox(Parent, Pos, Size, InitText, TextSize, TextColor)
 
     return Scroll, Box
 end
-
--- ===== GUI =====
 
 local OldGui = PlayerGui:FindFirstChild("FlexozyLoader")
 if OldGui then
@@ -221,7 +218,6 @@ LoadButton.Font = Enum.Font.GothamBold
 LoadButton.Parent = Card
 Corner(LoadButton, 9)
 
--- Row: SOURCE | STAGE [<] [>] [COPY ALL] ...... PAGE [<] [>] [COPY]
 Label(Card, UDim2.fromOffset(18, 137), UDim2.fromOffset(60, 22), "SOURCE", 12, Enum.Font.GothamBold)
 
 local StageLabel = Label(Card, UDim2.fromOffset(82, 137), UDim2.fromOffset(105, 22), "STAGE 0 / 0", 10, Enum.Font.GothamBold, COLOR_SUCCESS)
@@ -260,10 +256,8 @@ local LogScroll, LogBox = ScrollBox(
     "รอการทำงาน...", 11, Color3.fromRGB(190, 190, 190)
 )
 
--- ===== state =====
-
-local Stages = {}          -- { {Name = string, Source = string}, ... }
-local SeenSources = {}     -- กันซอสซ้ำ
+local Stages = {}
+local SeenSources = {}
 local StageIndex = 1
 local PageIndex = 1
 local PageCount = 0
@@ -359,7 +353,6 @@ local function GoToStage(Index)
     RefreshSourcePage()
 end
 
--- เพิ่ม stage ใหม่ (ซ้ำจะไม่เพิ่ม) คืนค่า index
 local function AddStage(Name, Source)
     Source = tostring(Source or "")
 
@@ -376,7 +369,6 @@ local function AddStage(Name, Source)
 
     AddLog("Captured stage " .. tostring(#Stages) .. ": " .. tostring(Name) .. " (" .. tostring(#Source) .. " bytes)")
 
-    -- stage แรกให้แสดงเลย, stage ถัดไปแค่อัปเดตตัวนับ (ไม่แย่งหน้าจอ)
     if #Stages == 1 then
         StageIndex = 1
         PageIndex = 1
@@ -401,9 +393,6 @@ local function ClearSession()
     SafeSetText(LogBox, "รอการทำงาน...")
 end
 
--- ===== hooks =====
-
--- เก็บ loadstring ตัวจริงไว้ใน getgenv กันฮุกซ้อนเวลารันสคริปต์นี้ซ้ำ
 local OldLoadstring = Env.__FlexozyOldLoadstring or loadstring
 Env.__FlexozyOldLoadstring = OldLoadstring
 
@@ -439,7 +428,6 @@ local function InstallLoadstringHook()
         return
     end
 
-    -- ตั้งทั้งใน global env และ env ของสคริปต์นี้ เพื่อให้สคริปต์ขั้นถัดไปโดนจับด้วย
     local Ok, Err = pcall(function()
         Env.loadstring = HookedLoadstring
         loadstring = HookedLoadstring
@@ -452,7 +440,6 @@ local function InstallLoadstringHook()
     end
 end
 
--- ฮุก game:HttpGet เพื่อจับซอสที่ถูกโหลดมาจาก URL ในแต่ละขั้นตอน
 Env.__FlexozyOnHttp = function(Url, Result)
     if type(Result) == "string" and #Result > 0 then
         AddLog("HttpGet: " .. tostring(Url))
@@ -505,7 +492,6 @@ local function ExecuteRootSource(Source)
 
     AddLog("กำลัง Compile Source...")
 
-    -- ใช้ตัวจริงตรง ๆ เพื่อไม่ให้ root ถูกนับซ้ำเป็น nested
     local Fn, CompileErr = OldLoadstring(Source)
 
     if type(Fn) ~= "function" then
@@ -526,8 +512,6 @@ local function ExecuteRootSource(Source)
     AddLog("Execute สำเร็จ")
     return true
 end
-
--- ===== events =====
 
 LoadButton.MouseButton1Click:Connect(function()
     if IsLoading then
@@ -582,7 +566,6 @@ LoadButton.MouseButton1Click:Connect(function()
 
     AddLog("HttpGet สำเร็จ: " .. tostring(#Result) .. " bytes")
 
-    -- ถ้า HttpGet hook จับไว้แล้ว AddStage จะไม่เพิ่มซ้ำ
     AddStage("ROOT", Result)
 
     SetStatus("โหลด Source สำเร็จ", COLOR_SUCCESS)
@@ -682,9 +665,92 @@ CopyLogButton.MouseButton1Click:Connect(function()
     CopyText(table.concat(LoadLogs, "\n"), CopyLogButton, "COPY LOG", nil)
 end)
 
--- ===== hover =====
-
 Hover(LoadButton, COLOR_WHITE, Color3.fromRGB(220, 220, 220))
 for _, Button in ipairs({CopyButton, CopyAllButton, CopyLogButton, PrevButton, NextButton, StagePrev, StageNext}) do
     Hover(Button, COLOR_SIDE, COLOR_HOVER)
 end
+
+local IsDragging = false
+local DragStart = nil
+local StartOffset = nil
+
+local function BeginDrag(Input)
+    IsDragging = true
+    DragStart = Input.Position
+
+    local Abs = Card.AbsolutePosition
+    Card.AnchorPoint = Vector2.new(0, 0)
+    Card.Position = UDim2.fromOffset(Abs.X, Abs.Y)
+
+    StartOffset = Vector2.new(Abs.X, Abs.Y)
+end
+
+local function UpdateDrag(Input)
+    if not IsDragging or not DragStart or not StartOffset then
+        return
+    end
+
+    local Delta = Input.Position - DragStart
+
+    local NewX = StartOffset.X + Delta.X
+    local NewY = StartOffset.Y + Delta.Y
+
+    local Camera = workspace.CurrentCamera
+    if Camera then
+        local V = Camera.ViewportSize
+        local CardSize = Card.AbsoluteSize
+        NewX = math.clamp(NewX, 0, math.max(0, V.X - CardSize.X))
+        NewY = math.clamp(NewY, 0, math.max(0, V.Y - CardSize.Y))
+    end
+
+    Card.Position = UDim2.fromOffset(NewX, NewY)
+end
+
+local function EndDrag()
+    IsDragging = false
+    DragStart = nil
+    StartOffset = nil
+end
+
+Header.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1
+        or Input.UserInputType == Enum.UserInputType.Touch then
+        BeginDrag(Input)
+    end
+end)
+
+Header.InputChanged:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseMovement
+        or Input.UserInputType == Enum.UserInputType.Touch then
+        UpdateDrag(Input)
+    end
+end)
+
+Header.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton1
+        or Input.UserInputType == Enum.UserInputType.Touch then
+        EndDrag()
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+    if IsDragging then
+        UpdateDrag(Input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if IsDragging
+        and (Input.UserInputType == Enum.UserInputType.MouseButton1
+        or Input.UserInputType == Enum.UserInputType.Touch) then
+        EndDrag()
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(Input, Processed)
+    if Processed then return end
+    if Input.KeyCode == Enum.KeyCode.Escape then
+        Card.AnchorPoint = Vector2.new(0.5, 0.5)
+        Card.Position = UDim2.fromScale(0.5, 0.5)
+    end
+end)
